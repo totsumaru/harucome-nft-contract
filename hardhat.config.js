@@ -3,6 +3,7 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
 require("solidity-coverage");
 require("hardhat-gas-reporter");
+require("hardhat-contract-sizer");
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -12,20 +13,16 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-{
+module.exports = {
   solidity: {
-    version: "0.8.4";
+    version: "0.8.17",
     settings: {
       optimizer: {
-        enabled: true;
-        runs: 200;
-      }
-    }
-  }
-}
-
-module.exports = {
-  solidity: "0.8.7",
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   gasReporter: {
     currency: "CHF",
     gasPrice: 21,

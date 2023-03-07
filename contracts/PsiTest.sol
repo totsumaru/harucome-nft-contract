@@ -1,21 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 import "erc721psi/contracts/ERC721Psi.sol";
 import "contract-allow-list/contracts/ERC721AntiScam/restrictApprove/ERC721RestrictApprove.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-contract Test is
-    ERC721RestrictApprove,
-    AccessControl,
-    Ownable,
-    ReentrancyGuard,
-    ERC2981
-{
+contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     enum SalePhase {
         Paused,
         Presale1,
@@ -31,7 +24,7 @@ contract Test is
     string public baseURI;
     string public notRevealedURI;
     string public baseExtension = ".json";
-    bool public revealed = false;
+    bool public revealed;
 
     SalePhase public phase = SalePhase.Paused;
     mapping(SalePhase => uint256) public mintPrice;
@@ -75,7 +68,7 @@ contract Test is
         _;
     }
 
-    modifier verifyMaxSupply(uint256 quantity) {
+    modifier notExceededMaxSupply(uint256 quantity) {
         require(
             quantity + totalSupply() <= MAX_SUPPLY,
             "claim is over the max supply"
@@ -83,7 +76,7 @@ contract Test is
         _;
     }
 
-    modifier verifyMaxMintAmountPerAddress(
+    modifier notExceededMaxMintAmountPerAddress(
         uint256 _maxMintAmount,
         uint256 _mintAmount
     ) {
@@ -94,7 +87,7 @@ contract Test is
         _;
     }
 
-    modifier verifyMaxMintAmountPerTx(uint256 _mintAmount) {
+    modifier notExceededMaxMintAmountPerTx(uint256 _mintAmount) {
         require(
             _mintAmount <= MAX_PUBLIC_MINT_AMOUNT_PER_TX,
             "exceeded max mint amount per Tx"
@@ -127,11 +120,11 @@ contract Test is
         callerIsUser
         onlyPhasePresale
         enoughEth(_mintAmount)
-        verifyMaxSupply(_mintAmount)
-        verifyMaxMintAmountPerAddress(_maxMintAmount, _mintAmount)
+        notExceededMaxSupply(_mintAmount)
+        notExceededMaxMintAmountPerAddress(_maxMintAmount, _mintAmount)
         onlyAllowlisted(_merkleProof, _maxMintAmount)
-        nonReentrant
     {
+        require(tx.origin == msg.sender, "The caller is another contract.");
         presaleMinted[_msgSender()] += _mintAmount;
         _safeMint(_msgSender(), _mintAmount);
     }
@@ -142,9 +135,8 @@ contract Test is
         callerIsUser
         onlyPhasePublicSale
         enoughEth(_mintAmount)
-        verifyMaxSupply(_mintAmount)
-        verifyMaxMintAmountPerTx(_mintAmount)
-        nonReentrant
+        notExceededMaxSupply(_mintAmount)
+        notExceededMaxMintAmountPerTx(_mintAmount)
     {
         _safeMint(_msgSender(), _mintAmount);
     }
@@ -199,16 +191,30 @@ contract Test is
         phase = SalePhase.Paused;
     }
 
-    function startPresale1() external onlyRole(OPERATOR_ROLE) {
+    function setPhasePresala1() external onlyRole(OPERATOR_ROLE) {
         phase = SalePhase.Presale1;
     }
 
-    function startPresale2() external onlyRole(OPERATOR_ROLE) {
+    function setPhasePresale2() external onlyRole(OPERATOR_ROLE) {
         phase = SalePhase.Presale2;
     }
 
-    function startPublicSale() external onlyRole(OPERATOR_ROLE) {
+    function setPhasePublicSale() external onlyRole(OPERATOR_ROLE) {
         phase = SalePhase.PublicSale;
+    }
+
+    function setMintPrice(SalePhase _phase, uint256 _price)
+        external
+        onlyRole(OPERATOR_ROLE)
+    {
+        mintPrice[_phase] = _price;
+    }
+
+    function setMerkleRoot(SalePhase _phase, bytes32 _merkleRoot)
+        external
+        onlyRole(OPERATOR_ROLE)
+    {
+        merkleRoot[_phase] = _merkleRoot;
     }
 
     // ----------------------------------------------------------
