@@ -29,6 +29,7 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     SalePhase public phase = SalePhase.Paused;
     mapping(SalePhase => uint256) public mintPrice;
     mapping(SalePhase => bytes32) public merkleRoot;
+
     mapping(address => uint256) public presaleMinted;
 
     constructor() ERC721Psi("Test", "TEST") {
@@ -124,7 +125,6 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         notExceededMaxMintAmountPerAddress(_maxMintAmount, _mintAmount)
         onlyAllowlisted(_merkleProof, _maxMintAmount)
     {
-        require(tx.origin == msg.sender, "The caller is another contract.");
         presaleMinted[_msgSender()] += _mintAmount;
         _safeMint(_msgSender(), _mintAmount);
     }
