@@ -38,21 +38,9 @@ module.exports = {
       url: process.env.API_URL_GOERLI,
       accounts: [process.env.PRIVATE_KEY_TEST_ACCOUNT],
     },
-    // polygon
-    // polygon: {
-    //   url: process.env.API_URL_POLYGON_MAIN,
-    //   accounts: [process.env.SECRET_KEY_TESTNET_1],
-    // },
-    // Mumbaiテストネット
-    // mumbai: {
-    //   url: process.env.API_URL_MUMBAI,
-    //   accounts: [process.env.SECRET_KEY_TESTNET_1],
-    // },
   },
   etherscan: {
     // Etherscan
     apiKey: process.env.SCAN_API_KEY,
-    // Polygonscan
-    // apiKey: process.env.POLYGONSCAN_API_KEY,
   },
 };

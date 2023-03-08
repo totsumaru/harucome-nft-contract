@@ -30,13 +30,18 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     mapping(SalePhase => uint256) public mintPrice;
     mapping(SalePhase => bytes32) public merkleRoot;
 
+    address public withdrawAddress = 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5;
+
     mapping(address => uint256) public presaleMinted;
 
-    constructor() ERC721Psi("Test", "TEST") {
+    constructor(address _CAL) ERC721Psi("Test", "TEST") {
         _grantRole(ADMIN_ROLE, 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5);
         _grantRole(OPERATOR_ROLE, 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5);
         _grantRole(OPERATOR_ROLE, 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5);
         _setRoleAdmin(OPERATOR_ROLE, ADMIN_ROLE);
+
+        setCALLevel(1);
+        setCAL(_CAL);
     }
 
     // ----------------------------------------------------------
@@ -129,7 +134,9 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         _safeMint(_msgSender(), _mintAmount);
     }
 
-    function publicMint(uint256 _mintAmount)
+    function publicMint(
+        uint256 _mintAmount
+    )
         external
         payable
         callerIsUser
@@ -165,22 +172,27 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     // Admin functions
     // ----------------------------------------------------------
 
-    function setBaseURI(string memory _newURI) public onlyRole(OPERATOR_ROLE) {
-        baseURI = _newURI;
+    function ownerMint(
+        address _to,
+        uint256 _mintAmount
+    ) external notExceededMaxSupply(_mintAmount) onlyRole(OPERATOR_ROLE) {
+        _safeMint(_to, _mintAmount);
     }
 
-    function setNotRevealedURI(string memory _newURI)
-        public
-        onlyRole(OPERATOR_ROLE)
-    {
-        baseURI = _newURI;
+    function setBaseURI(string memory _uri) external onlyRole(OPERATOR_ROLE) {
+        baseURI = _uri;
     }
 
-    function setBaseExtension(string memory _newExtension)
-        public
-        onlyRole(OPERATOR_ROLE)
-    {
-        baseExtension = _newExtension;
+    function setNotRevealedURI(
+        string memory _uri
+    ) external onlyRole(OPERATOR_ROLE) {
+        baseURI = _uri;
+    }
+
+    function setBaseExtension(
+        string memory _extension
+    ) external onlyRole(OPERATOR_ROLE) {
+        baseExtension = _extension;
     }
 
     function setRevealed(bool _status) external onlyRole(OPERATOR_ROLE) {
@@ -203,37 +215,46 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         phase = SalePhase.PublicSale;
     }
 
-    function setMintPrice(SalePhase _phase, uint256 _price)
-        external
-        onlyRole(OPERATOR_ROLE)
-    {
+    function setMintPrice(
+        SalePhase _phase,
+        uint256 _price
+    ) external onlyRole(OPERATOR_ROLE) {
         mintPrice[_phase] = _price;
     }
 
-    function setMerkleRoot(SalePhase _phase, bytes32 _merkleRoot)
-        external
-        onlyRole(OPERATOR_ROLE)
-    {
+    function setMerkleRoot(
+        SalePhase _phase,
+        bytes32 _merkleRoot
+    ) external onlyRole(OPERATOR_ROLE) {
         merkleRoot[_phase] = _merkleRoot;
+    }
+
+    function setWithdrawAddress(
+        address _withdrawAddress
+    ) public onlyRole(OPERATOR_ROLE) {
+        withdrawAddress = _withdrawAddress;
+    }
+
+    function withdraw() public payable onlyRole(OPERATOR_ROLE) {
+        (bool os, ) = payable(withdrawAddress).call{
+            value: address(this).balance
+        }("");
+        require(os);
     }
 
     // ----------------------------------------------------------
     // RestrictApprove
     // ----------------------------------------------------------
 
-    function addLocalContractAllowList(address transferer)
-        external
-        override
-        onlyRole(ADMIN_ROLE)
-    {
+    function addLocalContractAllowList(
+        address transferer
+    ) external override onlyRole(ADMIN_ROLE) {
         _addLocalContractAllowList(transferer);
     }
 
-    function removeLocalContractAllowList(address transferer)
-        external
-        override
-        onlyRole(ADMIN_ROLE)
-    {
+    function removeLocalContractAllowList(
+        address transferer
+    ) external override onlyRole(ADMIN_ROLE) {
         _removeLocalContractAllowList(transferer);
     }
 
@@ -250,15 +271,21 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         CALLevel = level;
     }
 
-    function setCAL(address calAddress) external override onlyRole(ADMIN_ROLE) {
+    function setCAL(address calAddress) public override onlyRole(ADMIN_ROLE) {
         _setCAL(calAddress);
+    }
+
+    function setEnebleRestrict(bool _status) public onlyRole(ADMIN_ROLE) {
+        enableRestrict = _status;
     }
 
     // ----------------------------------------------------------
     // Interface
     // ----------------------------------------------------------
 
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         override(ERC721RestrictApprove, AccessControl, ERC2981)
