@@ -47,6 +47,9 @@ module.exports = {
     enabled: true,
     token: "ETH",
     currency: "ETH",
-    gasPrice: 21,
+    gasPriceApi:
+      "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
+    coinmarketcap: process.env.COIN_MAEKETCAP_API_KEY,
+    gasPrice: 26,
   },
 };
