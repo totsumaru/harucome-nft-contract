@@ -2,23 +2,50 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat"); // 明示的に書いておく
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-describe("Testコントラクト", function () {
-  // Deploy時のFixtureを設定します
-  // 各テストの最初に`loadFixture(deployTokenFixture)`で初期化します
-  async function deployTokenFixture() {
-    const Token = await ethers.getContractFactory("Test");
-    const [owner, addr1, addr2] = await ethers.getSigners();
+// const calAddress = "0xdbaa28cBe70aF04EbFB166b1A3E8F8034e5B9FC7"; // Mainnet
+const calAddress = "0xb506d7BbE23576b8AAf22477cd9A7FDF08002211"; // Goerli
 
-    const hardhatToken = await Token.deploy();
+beforeEach(async function () {
+  contract = await ethers.getContractFactory("Test");
+  [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
 
-    await hardhatToken.deployed();
+  ad = await contract.deploy();
+});
 
-    // Fixtures can return anything you consider useful for your tests
-    return { Token, hardhatToken, owner, addr1, addr2 };
-  }
+describe("constructor", function () {
+  it("チームのアドレスに`DEFAULT_ADMIN_ROLE`が設定されている", async () => {
+    const res = await ad.hasRole(ad.DEFAULT_ADMIN_ROLE(), ad.teamAddress());
+    expect(res).to.equal(true);
+  });
 
-  it("コンストラクタが正しく設定されている", async () => {
-    const { hardhatToken } = await loadFixture(deployTokenFixture);
-    expect(await hardhatToken.MAX_SUPPLY()).to.equal(50);
+  it("チームのアドレスに`OPERATOR_ROLE`が設定されている", async () => {
+    const res = await ad.hasRole(ad.OPERATOR_ROLE(), ad.teamAddress());
+    expect(res).to.equal(true);
+  });
+
+  it("Deployしたアドレスに`OPERATOR_ROLE`が設定されている", async () => {
+    const res = await ad.hasRole(ad.OPERATOR_ROLE(), ad.teamAddress());
+    expect(res).to.equal(true);
+  });
+
+  it("ロイヤリティが正しく設定されている", async () => {
+    const sellPrice = ethers.utils.parseEther("0.05");
+
+    const res = await ad.royaltyInfo(0, sellPrice);
+
+    // 受け取りがチームアドレスである
+    expect(res[0]).to.equal(await ad.teamAddress());
+    // 販売額の10%が設定されている
+    expect(res[1]).to.equal(sellPrice * 0.1);
+  });
+
+  it("CALのレベルが`1`として設定されている", async () => {
+    const res = await ad.CALLevel();
+    expect(res).to.equal(1);
+  });
+
+  it("CALのアドレスが正しく設定されている", async () => {
+    const res = await ad.CAL();
+    expect(res).to.equal(calAddress);
   });
 });

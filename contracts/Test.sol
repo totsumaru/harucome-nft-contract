@@ -32,16 +32,16 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     // ------------------------------
     // TODO: Replace this address.
     // ------------------------------
-    address public projectAddress = 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5;
+    address public teamAddress = 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5;
 
     mapping(address => uint256) public presaleMinted;
 
     constructor() ERC721Psi("Test", "TEST") {
-        _grantRole(DEFAULT_ADMIN_ROLE, projectAddress);
-        _grantRole(OPERATOR_ROLE, projectAddress);
+        _grantRole(DEFAULT_ADMIN_ROLE, teamAddress);
+        _grantRole(OPERATOR_ROLE, teamAddress);
         _grantRole(OPERATOR_ROLE, _msgSender());
 
-        _setDefaultRoyalty(projectAddress, 1000);
+        _setDefaultRoyalty(teamAddress, 1000);
 
         setCALLevel(1);
         // setCAL(0xdbaa28cBe70aF04EbFB166b1A3E8F8034e5B9FC7); // Mainnet
@@ -233,10 +233,10 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         merkleRoot[_phase] = _merkleRoot;
     }
 
-    function setProjectAddress(
-        address _projectAddress
+    function setTeamAddress(
+        address _teamAddress
     ) public onlyRole(OPERATOR_ROLE) {
-        projectAddress = _projectAddress;
+        teamAddress = _teamAddress;
     }
 
     function setDefaultRoyalty(
@@ -247,9 +247,9 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     }
 
     function withdraw() public onlyRole(OPERATOR_ROLE) {
-        (bool os, ) = payable(projectAddress).call{
-            value: address(this).balance
-        }("");
+        (bool os, ) = payable(teamAddress).call{value: address(this).balance}(
+            ""
+        );
         require(os);
     }
 

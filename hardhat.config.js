@@ -50,6 +50,6 @@ module.exports = {
     gasPriceApi:
       "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
     coinmarketcap: process.env.COIN_MAEKETCAP_API_KEY,
-    gasPrice: 26,
+    gasPrice: 25,
   },
 };

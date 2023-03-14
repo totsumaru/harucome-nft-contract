@@ -11,6 +11,7 @@
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@nomiclabs/hardhat-waffle": "^2.0.5",
     "@openzeppelin/contracts": "^4.8.2",
+    "bignumber.js": "^9.1.1",
     "contract-allow-list": "^1.0.7",
     "dotenv": "^16.0.3",
     "solidity-coverage": "^0.8.2"
