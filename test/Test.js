@@ -13,6 +13,27 @@ beforeEach(async function () {
 });
 
 describe("constructor", function () {
+  it("供給量が50である", async () => {
+    const res = await ad.MAX_SUPPLY();
+    expect(res).to.equal(50);
+  });
+
+  it("1Txあたりのミント数が2である", async () => {
+    const res = await ad.MAX_MINT_AMOUNT_PER_TX();
+    expect(res).to.equal(2);
+  });
+
+  it("revealedがfalseとなっている", async () => {
+    const res = await ad.revealed();
+    expect(res).to.equal(false);
+  });
+
+  it("phaseがPausedになっている", async () => {
+    // Paused == 0
+    const res = await ad.phase();
+    expect(res).to.equal(0);
+  });
+
   it("チームのアドレスに`DEFAULT_ADMIN_ROLE`が設定されている", async () => {
     const res = await ad.hasRole(ad.DEFAULT_ADMIN_ROLE(), ad.teamAddress());
     expect(res).to.equal(true);

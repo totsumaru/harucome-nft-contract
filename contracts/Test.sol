@@ -17,7 +17,7 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     }
 
     uint256 public constant MAX_SUPPLY = 50;
-    uint256 public constant MAX_PUBLIC_MINT_AMOUNT_PER_TX = 2;
+    uint256 public constant MAX_MINT_AMOUNT_PER_TX = 2;
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR");
 
     string public baseURI;
@@ -97,9 +97,12 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         _;
     }
 
+    /**
+     * @dev use only public sale
+     */
     modifier notExceededMaxMintAmountPerTx(uint256 _mintAmount) {
         require(
-            _mintAmount <= MAX_PUBLIC_MINT_AMOUNT_PER_TX,
+            _mintAmount <= MAX_MINT_AMOUNT_PER_TX,
             "exceeded max mint amount per Tx"
         );
         _;
