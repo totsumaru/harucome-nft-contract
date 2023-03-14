@@ -43,4 +43,10 @@ module.exports = {
     // Etherscan
     apiKey: process.env.SCAN_API_KEY,
   },
+  gasReporter: {
+    enabled: true,
+    token: "ETH",
+    currency: "ETH",
+    gasPrice: 21,
+  },
 };

@@ -18,7 +18,6 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
 
     uint256 public constant MAX_SUPPLY = 50;
     uint256 public constant MAX_PUBLIC_MINT_AMOUNT_PER_TX = 2;
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR");
 
     string public baseURI;
@@ -30,18 +29,23 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     mapping(SalePhase => uint256) public mintPrice;
     mapping(SalePhase => bytes32) public merkleRoot;
 
-    address public withdrawAddress = 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5;
+    // ------------------------------
+    // TODO: Replace this address.
+    // ------------------------------
+    address public projectAddress = 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5;
 
     mapping(address => uint256) public presaleMinted;
 
-    constructor(address _CAL) ERC721Psi("Test", "TEST") {
-        _grantRole(ADMIN_ROLE, 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5);
-        _grantRole(OPERATOR_ROLE, 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5);
-        _grantRole(OPERATOR_ROLE, 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5);
-        _setRoleAdmin(OPERATOR_ROLE, ADMIN_ROLE);
+    constructor() ERC721Psi("Test", "TEST") {
+        _grantRole(DEFAULT_ADMIN_ROLE, projectAddress);
+        _grantRole(OPERATOR_ROLE, projectAddress);
+        _grantRole(OPERATOR_ROLE, _msgSender());
+
+        _setDefaultRoyalty(projectAddress, 1000);
 
         setCALLevel(1);
-        setCAL(_CAL);
+        // setCAL(0xdbaa28cBe70aF04EbFB166b1A3E8F8034e5B9FC7); // Mainnet
+        setCAL(0xb506d7BbE23576b8AAf22477cd9A7FDF08002211); // TODO: Delete this line.
     }
 
     // ----------------------------------------------------------
@@ -169,7 +173,7 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     }
 
     // ----------------------------------------------------------
-    // Admin functions
+    // Operator functions
     // ----------------------------------------------------------
 
     function ownerMint(
@@ -229,14 +233,21 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         merkleRoot[_phase] = _merkleRoot;
     }
 
-    function setWithdrawAddress(
-        address _withdrawAddress
+    function setProjectAddress(
+        address _projectAddress
     ) public onlyRole(OPERATOR_ROLE) {
-        withdrawAddress = _withdrawAddress;
+        projectAddress = _projectAddress;
     }
 
-    function withdraw() public payable onlyRole(OPERATOR_ROLE) {
-        (bool os, ) = payable(withdrawAddress).call{
+    function setDefaultRoyalty(
+        address _receiver,
+        uint96 _feeNumerator
+    ) public onlyRole(OPERATOR_ROLE) {
+        _setDefaultRoyalty(_receiver, _feeNumerator);
+    }
+
+    function withdraw() public onlyRole(OPERATOR_ROLE) {
+        (bool os, ) = payable(projectAddress).call{
             value: address(this).balance
         }("");
         require(os);
@@ -248,13 +259,13 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
 
     function addLocalContractAllowList(
         address transferer
-    ) external override onlyRole(ADMIN_ROLE) {
+    ) external override onlyRole(OPERATOR_ROLE) {
         _addLocalContractAllowList(transferer);
     }
 
     function removeLocalContractAllowList(
         address transferer
-    ) external override onlyRole(ADMIN_ROLE) {
+    ) external override onlyRole(OPERATOR_ROLE) {
         _removeLocalContractAllowList(transferer);
     }
 
@@ -267,15 +278,19 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         return _getLocalContractAllowList();
     }
 
-    function setCALLevel(uint256 level) public override onlyRole(ADMIN_ROLE) {
+    function setCALLevel(
+        uint256 level
+    ) public override onlyRole(OPERATOR_ROLE) {
         CALLevel = level;
     }
 
-    function setCAL(address calAddress) public override onlyRole(ADMIN_ROLE) {
+    function setCAL(
+        address calAddress
+    ) public override onlyRole(OPERATOR_ROLE) {
         _setCAL(calAddress);
     }
 
-    function setEnebleRestrict(bool _status) public onlyRole(ADMIN_ROLE) {
+    function setEnebleRestrict(bool _status) public onlyRole(OPERATOR_ROLE) {
         enableRestrict = _status;
     }
 
