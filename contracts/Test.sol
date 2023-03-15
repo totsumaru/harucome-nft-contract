@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
+// TODO: DefaultOperatorFilterを入れる
+
 contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     enum SalePhase {
         Paused,
@@ -19,6 +21,8 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     uint256 public constant MAX_SUPPLY = 50;
     uint256 public constant MAX_MINT_AMOUNT_PER_TX = 2;
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR");
+    address public constant TEAM_ADDRESS =
+        0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5;
 
     string public baseURI;
     string public notRevealedURI;
@@ -29,19 +33,16 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     mapping(SalePhase => uint256) public mintPrice;
     mapping(SalePhase => bytes32) public merkleRoot;
 
-    // ------------------------------
-    // TODO: Replace this address.
-    // ------------------------------
-    address public teamAddress = 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5;
+    address public withdrawAddress = 0xEA1a2Dfbc2cF2793ef0772dc0625Cd09750747f5;
 
     mapping(address => uint256) public presaleMinted;
 
     constructor() ERC721Psi("Test", "TEST") {
-        _grantRole(DEFAULT_ADMIN_ROLE, teamAddress);
-        _grantRole(OPERATOR_ROLE, teamAddress);
+        _grantRole(DEFAULT_ADMIN_ROLE, TEAM_ADDRESS);
+        _grantRole(OPERATOR_ROLE, TEAM_ADDRESS);
         _grantRole(OPERATOR_ROLE, _msgSender());
 
-        _setDefaultRoyalty(teamAddress, 1000);
+        _setDefaultRoyalty(withdrawAddress, 1000);
 
         setCALLevel(1);
         // setCAL(0xdbaa28cBe70aF04EbFB166b1A3E8F8034e5B9FC7); // Mainnet
@@ -171,10 +172,6 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
             MerkleProof.verifyCalldata(_merkleProof, merkleRoot[_phase], leaf);
     }
 
-    function _baseURI() internal view virtual override returns (string memory) {
-        return baseURI;
-    }
-
     // ----------------------------------------------------------
     // Operator functions
     // ----------------------------------------------------------
@@ -206,7 +203,7 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         revealed = _status;
     }
 
-    function pause() external onlyRole(OPERATOR_ROLE) {
+    function setPhasePaused() external onlyRole(OPERATOR_ROLE) {
         phase = SalePhase.Paused;
     }
 
@@ -236,10 +233,10 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         merkleRoot[_phase] = _merkleRoot;
     }
 
-    function setTeamAddress(
-        address _teamAddress
+    function setWithdrawAddress(
+        address _withdrawAddress
     ) public onlyRole(OPERATOR_ROLE) {
-        teamAddress = _teamAddress;
+        withdrawAddress = _withdrawAddress;
     }
 
     function setDefaultRoyalty(
@@ -250,10 +247,18 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     }
 
     function withdraw() public onlyRole(OPERATOR_ROLE) {
-        (bool os, ) = payable(teamAddress).call{value: address(this).balance}(
-            ""
-        );
+        (bool os, ) = payable(withdrawAddress).call{
+            value: address(this).balance
+        }("");
         require(os);
+    }
+
+    // ----------------------------------------------------------
+    // internal functions
+    // ----------------------------------------------------------
+
+    function _baseURI() internal view virtual override returns (string memory) {
+        return baseURI;
     }
 
     // ----------------------------------------------------------
