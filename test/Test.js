@@ -1,9 +1,16 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat"); // 明示的に書いておく
+const { keccak256 } = require("ethers/lib/utils");
+const { default: MerkleTree } = require("merkletreejs");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
 // const calAddress = "0xdbaa28cBe70aF04EbFB166b1A3E8F8034e5B9FC7"; // Mainnet
 const calAddress = "0xb506d7BbE23576b8AAf22477cd9A7FDF08002211"; // Goerli
+
+const phasePaused = 0;
+const phasePresale1 = 1;
+const phasePresale2 = 2;
+const phasePublicSale = 3;
 
 beforeEach(async () => {
   contract = await ethers.getContractFactory("Test");
@@ -11,6 +18,31 @@ beforeEach(async () => {
 
   ad = await contract.deploy();
 });
+
+// arg: {address: mintAmount}の"配列"を引数に指定
+const createMerkleTree = (addressesWithAmount) => {
+  // アドレスを全て小文字に変換
+  const lowerAddrMap = addressesWithAmount.map((map) => {
+    return {
+      address: map.address.toLowerCase(),
+      mintAmount: map.mintAmount,
+    };
+  });
+
+  // leafを作成
+  const leaves = lowerAddrMap.map((map) => {
+    const leaf = ethers.utils.solidityKeccak256(
+      ["address", "uint256"],
+      [map.address, map.mintAmount]
+    );
+
+    return leaf;
+  });
+
+  const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+
+  return tree;
+};
 
 describe("constructor", function () {
   it("供給量が50である", async () => {
@@ -72,7 +104,27 @@ describe("constructor", function () {
 });
 
 describe("presaleMint", async () => {
-  it("最大数でmintできる", async () => {});
+  it("最大数でmintできる", async () => {
+    // addr1をALに登録
+    const tree = createMerkleTree([{ address: addr1.address, mintAmount: 2 }]);
+    await ad.connect(owner).setMerkleRoot(phasePresale1, tree.getHexRoot());
+
+    // phaseをPresale1に変更
+    await ad.connect(owner).setPhasePresala1();
+
+    // mint
+    await ad
+      .connect(addr1)
+      .presaleMint(2, tree.getHexProof(keccak256(addr1.address)), 2);
+
+    // totalSupplyを検証
+    const totalSupply = await ad.totalSupply();
+    expect(totalSupply).to.equal(2);
+
+    // addr1が正常にmintできている
+    const add1Minted = await ad.balanceOf(addr1.address);
+    expect(add1Minted).to.equal(2);
+  });
   it("上限以内であれば複数回mintできる", async () => {});
   it("phaseがPausedの場合はエラーが返される", async () => {});
   it("phaseがPublicSaleの場合はエラーが返される", async () => {});
