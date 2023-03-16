@@ -147,17 +147,64 @@ describe("Test", function () {
           value: ethers.utils.parseEther("0.002"),
         });
 
-      // totalSupplyを検証
+      // totalSupplyが期待した値と一致ことを確認
       const totalSupply = await myContract.totalSupply();
       expect(totalSupply).to.equal(2);
 
-      // addr1が正常にmintできている
+      // addr1が正常にmintできていることを確認
+      const addr1Minted = await myContract.balanceOf(addr1.address);
+      expect(addr1Minted).to.equal(2);
+    });
+
+    it("上限以内であれば複数回mintできる", async () => {
+      const tree = await setup(addr1.address, 2);
+
+      // 1枚ずつのmintを2回実行する
+      for (let i = 0; i < 2; i++) {
+        await myContract
+          .connect(addr1)
+          .presaleMint(1, tree.getHexProof(keccak256(addr1.address)), 2, {
+            value: ethers.utils.parseEther("0.001"),
+          });
+      }
+
+      // addr1が正常にmintできていることを確認
       const add1Minted = await myContract.balanceOf(addr1.address);
       expect(add1Minted).to.equal(2);
     });
-    it("上限以内であれば複数回mintできる", async () => {});
-    it("phaseがPausedの場合はエラーが返される", async () => {});
-    it("phaseがPublicSaleの場合はエラーが返される", async () => {});
+
+    it("phaseがPausedの場合はエラーが返される", async () => {
+      const tree = await setup(addr1.address, 2);
+
+      // phaseをPausedに変更
+      await myContract.connect(owner).setPhasePaused();
+
+      // mint
+      await expect(
+        myContract
+          .connect(addr1)
+          .presaleMint(2, tree.getHexProof(keccak256(addr1.address)), 2, {
+            value: ethers.utils.parseEther("0.002"),
+          })
+      ).to.be.reverted;
+    });
+
+    it("phaseがPublicSaleの場合はエラーが返される", async () => {
+      const tree = await setup(addr1.address, 2);
+
+      // phaseをPublicSaleに変更
+      await myContract.connect(owner).setPhasePublicSale();
+
+      // mint
+      await expect(
+        myContract
+          .connect(addr1)
+          .presaleMint(2, tree.getHexProof(keccak256(addr1.address)), 2, {
+            value: ethers.utils.parseEther("0.002"),
+          })
+      ).to.be.reverted;
+    });
+
     it("ETHが不足している場合はエラーが返される", async () => {});
     it("最大供給数を超える場合はエラーが返される", async () => {});
     it("1アドレスの最大数を超える場合はエラーが返される", async () => {});

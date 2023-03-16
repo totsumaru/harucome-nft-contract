@@ -98,8 +98,8 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         uint256 _mintAmount
     ) {
         require(
-            _maxMintAmount <= presaleMinted[_msgSender()] + _mintAmount,
-            "exceeded max mint amount"
+            _maxMintAmount >= presaleMinted[_msgSender()] + _mintAmount,
+            "exceeded max mint amount per wallet"
         );
         _;
     }
