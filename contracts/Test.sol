@@ -46,6 +46,10 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
 
         _setDefaultRoyalty(withdrawAddress, 1000);
 
+        mintPrice[SalePhase.Presale1] = 0.001 ether;
+        mintPrice[SalePhase.Presale2] = 0.001 ether;
+        mintPrice[SalePhase.PublicSale] = 0.005 ether;
+
         setCALLevel(1);
         // setCAL(0xdbaa28cBe70aF04EbFB166b1A3E8F8034e5B9FC7); // Mainnet
         setCAL(0xb506d7BbE23576b8AAf22477cd9A7FDF08002211); // TODO: Delete this line.
@@ -210,14 +214,17 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     }
 
     function setPhasePresala1() external onlyRole(OPERATOR_ROLE) {
+        require(mintPrice[SalePhase.Presale1] > 0, "price is zero");
         phase = SalePhase.Presale1;
     }
 
     function setPhasePresale2() external onlyRole(OPERATOR_ROLE) {
+        require(mintPrice[SalePhase.Presale2] > 0, "price is zero");
         phase = SalePhase.Presale2;
     }
 
     function setPhasePublicSale() external onlyRole(OPERATOR_ROLE) {
+        require(mintPrice[SalePhase.PublicSale] > 0, "price is zero");
         phase = SalePhase.PublicSale;
     }
 
