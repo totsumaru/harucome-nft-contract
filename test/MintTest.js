@@ -5,21 +5,23 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { keccak256 } = require("ethers/lib/utils");
-const { deploy, createMerkleTree, phasePresale1 } = require("./Test");
+const {
+  deploy,
+  createMerkleTree,
+  phasePresale1,
+  phasePresale2,
+} = require("./Test");
 
 beforeEach(deploy);
 
 describe("presaleMint", async () => {
-  // プレセールの準備をします
-  const setup = async (address, maxMintAmount) => {
+  // presaleのセットアップをします
+  const setup = async ({ address, maxMintAmount, phase = phasePresale1 }) => {
     // ALを登録
     const tree = createMerkleTree([
       { address: address, maxMintAmount: maxMintAmount },
     ]);
-
-    await myContract
-      .connect(owner)
-      .setMerkleRoot(phasePresale1, tree.getHexRoot());
+    await myContract.connect(owner).setMerkleRoot(phase, tree.getHexRoot());
 
     // phaseをPresale1に設定
     await myContract.connect(owner).setPhasePresala1();
@@ -28,8 +30,36 @@ describe("presaleMint", async () => {
   };
 
   it("最大数でmintできる", async () => {
-    // `addr1`が`最大2mint`できるようにAL登録
-    const tree = await setup(addr1.address, 2);
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 2,
+    });
+
+    // mint
+    await myContract
+      .connect(addr1)
+      .presaleMint(2, tree.getHexProof(keccak256(addr1.address)), 2, {
+        value: ethers.utils.parseEther("0.002"),
+      });
+
+    // totalSupplyが期待した値と一致ことを確認
+    const totalSupply = await myContract.totalSupply();
+    expect(totalSupply).to.equal(2);
+
+    // addr1が正常にmintできていることを確認
+    const addr1Minted = await myContract.balanceOf(addr1.address);
+    expect(addr1Minted).to.equal(2);
+  });
+
+  it("phaseがPresale2でmintできる", async () => {
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 2,
+      phase: phasePresale2,
+    });
+
+    // phaseをPresale2に変更
+    await myContract.connect(owner).setPhasePresale2();
 
     // mint
     await myContract
@@ -48,7 +78,10 @@ describe("presaleMint", async () => {
   });
 
   it("上限以内であれば複数回mintできる", async () => {
-    const tree = await setup(addr1.address, 2);
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 2,
+    });
 
     // 1枚ずつのmintを2回実行する
     for (let i = 0; i < 2; i++) {
@@ -65,7 +98,10 @@ describe("presaleMint", async () => {
   });
 
   it("phaseがPausedの場合はエラーが返される", async () => {
-    const tree = await setup(addr1.address, 2);
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 2,
+    });
 
     // phaseをPausedに変更
     await myContract.connect(owner).setPhasePaused();
@@ -81,7 +117,10 @@ describe("presaleMint", async () => {
   });
 
   it("phaseがPublicSaleの場合はエラーが返される", async () => {
-    const tree = await setup(addr1.address, 2);
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 2,
+    });
 
     // phaseをPublicSaleに変更
     await myContract.connect(owner).setPhasePublicSale();
@@ -97,7 +136,10 @@ describe("presaleMint", async () => {
   });
 
   it("ETHが不足している場合はエラーが返される", async () => {
-    const tree = await setup(addr1.address, 2);
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 2,
+    });
 
     // mint
     await expect(
@@ -110,7 +152,10 @@ describe("presaleMint", async () => {
   });
 
   it("最大供給数を超える場合はエラーが返される", async () => {
-    const tree = await setup(addr1.address, 51);
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 51,
+    });
 
     // mint
     await expect(
@@ -123,7 +168,10 @@ describe("presaleMint", async () => {
   });
 
   it("1アドレスの最大数を超える場合はエラーが返される", async () => {
-    const tree = await setup(addr1.address, 2);
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 2,
+    });
 
     // mint
     await expect(
@@ -136,7 +184,10 @@ describe("presaleMint", async () => {
   });
 
   it("ALに入っていないアドレスはエラーが返される", async () => {
-    const tree = await setup(addr1.address, 2);
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 2,
+    });
 
     // mint
     await expect(
@@ -149,8 +200,10 @@ describe("presaleMint", async () => {
   });
 
   it("最大mint数が誤っている場合はエラーが返される", async () => {
-    // 上限を2mintで登録
-    const tree = await setup(addr1.address, 2);
+    const tree = await setup({
+      address: addr1.address,
+      maxMintAmount: 2,
+    });
 
     // mint
     // 3mintにてチャレンジ
