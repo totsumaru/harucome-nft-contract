@@ -186,7 +186,7 @@ describe("Test", function () {
           .presaleMint(2, tree.getHexProof(keccak256(addr1.address)), 2, {
             value: ethers.utils.parseEther("0.002"),
           })
-      ).to.be.reverted;
+      ).to.revertedWith("Not is presale phase");
     });
 
     it("phaseがPublicSaleの場合はエラーが返される", async () => {
@@ -202,13 +202,75 @@ describe("Test", function () {
           .presaleMint(2, tree.getHexProof(keccak256(addr1.address)), 2, {
             value: ethers.utils.parseEther("0.002"),
           })
-      ).to.be.reverted;
+      ).to.revertedWith("Not is presale phase");
     });
 
-    it("ETHが不足している場合はエラーが返される", async () => {});
-    it("最大供給数を超える場合はエラーが返される", async () => {});
-    it("1アドレスの最大数を超える場合はエラーが返される", async () => {});
-    it("ALに入っていないアドレスはエラーが返される", async () => {});
+    it("ETHが不足している場合はエラーが返される", async () => {
+      const tree = await setup(addr1.address, 2);
+
+      // mint
+      await expect(
+        myContract
+          .connect(addr1)
+          .presaleMint(2, tree.getHexProof(keccak256(addr1.address)), 2, {
+            value: ethers.utils.parseEther("0.001"), // 本来は0.002ETH必要
+          })
+      ).to.revertedWith("Insufficient eth");
+    });
+
+    it("最大供給数を超える場合はエラーが返される", async () => {
+      const tree = await setup(addr1.address, 51);
+
+      // mint
+      await expect(
+        myContract
+          .connect(addr1)
+          .presaleMint(51, tree.getHexProof(keccak256(addr1.address)), 51, {
+            value: ethers.utils.parseEther("0.051"),
+          })
+      ).to.revertedWith("claim is over the max supply");
+    });
+
+    it("1アドレスの最大数を超える場合はエラーが返される", async () => {
+      const tree = await setup(addr1.address, 2);
+
+      // mint
+      await expect(
+        myContract
+          .connect(addr1)
+          .presaleMint(3, tree.getHexProof(keccak256(addr1.address)), 2, {
+            value: ethers.utils.parseEther("0.003"),
+          })
+      ).to.revertedWith("exceeded max mint amount per wallet");
+    });
+
+    it("ALに入っていないアドレスはエラーが返される", async () => {
+      const tree = await setup(addr1.address, 2);
+
+      // mint
+      await expect(
+        myContract
+          .connect(addr2) // addr1のみALに登録しているが、addr2でmint
+          .presaleMint(2, tree.getHexProof(keccak256(addr1.address)), 2, {
+            value: ethers.utils.parseEther("0.002"),
+          })
+      ).to.revertedWith("Not AllowListed");
+    });
+
+    it("最大mint数が誤っている場合はエラーが返される", async () => {
+      // 上限を2mintで登録
+      const tree = await setup(addr1.address, 2);
+
+      // mint
+      // 3mintにてチャレンジ
+      await expect(
+        myContract
+          .connect(addr1)
+          .presaleMint(3, tree.getHexProof(keccak256(addr1.address)), 3, {
+            value: ethers.utils.parseEther("0.003"),
+          })
+      ).to.revertedWith("Not AllowListed");
+    });
   });
 
   describe("publicMint", async () => {
