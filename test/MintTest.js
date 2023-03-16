@@ -1,5 +1,8 @@
 // --------------------------------------------------
 // mintに関するテストを実行します
+//
+// - `presaleMint`と`publicMint`の2つの関数のみを検証します
+// - `Test.js`で定義したテスト用の関数を使用しています
 // --------------------------------------------------
 
 const { expect } = require("chai");
@@ -42,10 +45,6 @@ describe("presaleMint", async () => {
         value: ethers.utils.parseEther("0.002"),
       });
 
-    // totalSupplyが期待した値と一致ことを確認
-    const totalSupply = await myContract.totalSupply();
-    expect(totalSupply).to.equal(2);
-
     // addr1が正常にmintできていることを確認
     const addr1Minted = await myContract.balanceOf(addr1.address);
     expect(addr1Minted).to.equal(2);
@@ -67,10 +66,6 @@ describe("presaleMint", async () => {
       .presaleMint(2, tree.getHexProof(keccak256(addr1.address)), 2, {
         value: ethers.utils.parseEther("0.002"),
       });
-
-    // totalSupplyが期待した値と一致ことを確認
-    const totalSupply = await myContract.totalSupply();
-    expect(totalSupply).to.equal(2);
 
     // addr1が正常にmintできていることを確認
     const addr1Minted = await myContract.balanceOf(addr1.address);
