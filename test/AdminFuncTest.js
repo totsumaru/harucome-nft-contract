@@ -14,6 +14,7 @@ const {
   phasePresale1,
   phasePresale2,
   phasePublicSale,
+  createMerkleTree,
 } = require("./Test");
 
 beforeEach(deploy);
@@ -147,13 +148,39 @@ describe("setPhasePublicSale", async () => {
 });
 
 describe("setMintPrice", async () => {
-  it("mint価格を変更できる", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+  const price = ethers.utils.parseEther("0.1");
+
+  it("mint価格を変更できる", async () => {
+    await myContract.connect(owner).setMintPrice(phasePresale1, price);
+
+    const res = await myContract.mintPrice(phasePresale1);
+    expect(res).to.equal(price);
+  });
+
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(myContract.connect(addr1).setMintPrice(phasePresale1, price))
+      .to.be.reverted;
+  });
 });
 
 describe("setMerkleRoot", async () => {
-  it("MerkleRootを変更できる", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+  const root = createMerkleTree([
+    { adderss: addr1.address, maxMintAmount: 2 },
+  ]).getHexRoot();
+
+  it("MerkleRootを変更できる", async () => {
+    await myContract.connect(owner).setMerkleRoot(phasePresale1, root);
+
+    const res = await myContract.merkleRoot(phasePresale1);
+    expect(res).to.equal(root);
+  });
+
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(myContract.connect(addr1).setMerkleRoot(phasePresale1, root))
+      .to.be.reverted;
+  });
 });
 
 describe("setWithdrawAddress", async () => {
