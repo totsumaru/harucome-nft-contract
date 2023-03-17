@@ -19,7 +19,11 @@ beforeEach(deploy);
 
 describe("presaleMint", async () => {
   // presaleのセットアップをします
-  const setup = async ({ address, maxMintAmount, phase = phasePresale1 }) => {
+  const presaleSetup = async ({
+    address,
+    maxMintAmount,
+    phase = phasePresale1,
+  }) => {
     // ALを登録
     const tree = createMerkleTree([
       { address: address, maxMintAmount: maxMintAmount },
@@ -27,13 +31,13 @@ describe("presaleMint", async () => {
     await myContract.connect(owner).setMerkleRoot(phase, tree.getHexRoot());
 
     // phaseをPresale1に設定
-    await myContract.connect(owner).setPhasePresala1();
+    await myContract.connect(owner).setPhasePresale1();
 
     return tree;
   };
 
   it("最大数でmintできる", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 2,
     });
@@ -51,7 +55,7 @@ describe("presaleMint", async () => {
   });
 
   it("phaseがPresale2でmintできる", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 2,
       phase: phasePresale2,
@@ -73,7 +77,7 @@ describe("presaleMint", async () => {
   });
 
   it("上限以内であれば複数回mintできる", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 2,
     });
@@ -93,7 +97,7 @@ describe("presaleMint", async () => {
   });
 
   it("phaseがPausedの場合はエラーが返される", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 2,
     });
@@ -112,7 +116,7 @@ describe("presaleMint", async () => {
   });
 
   it("phaseがPublicSaleの場合はエラーが返される", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 2,
     });
@@ -131,7 +135,7 @@ describe("presaleMint", async () => {
   });
 
   it("ETHが不足している場合はエラーが返される", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 2,
     });
@@ -147,7 +151,7 @@ describe("presaleMint", async () => {
   });
 
   it("最大供給数を超える場合はエラーが返される", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 51,
     });
@@ -163,7 +167,7 @@ describe("presaleMint", async () => {
   });
 
   it("1アドレスの最大数を超える場合はエラーが返される", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 2,
     });
@@ -179,7 +183,7 @@ describe("presaleMint", async () => {
   });
 
   it("ALに入っていないアドレスはエラーが返される", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 2,
     });
@@ -195,7 +199,7 @@ describe("presaleMint", async () => {
   });
 
   it("最大mint数が誤っている場合はエラーが返される", async () => {
-    const tree = await setup({
+    const tree = await presaleSetup({
       address: addr1.address,
       maxMintAmount: 2,
     });
@@ -213,12 +217,108 @@ describe("presaleMint", async () => {
 });
 
 describe("publicMint", async () => {
-  it("1Txあたりの最大数でmintできる", async () => {});
-  it("複数回mintできる", async () => {});
-  it("phaseがPrivateの場合はエラーが返される", async () => {});
-  it("phaseがPresale1の場合はエラーが返される", async () => {});
-  it("phaseがPresale2の場合はエラーが返される", async () => {});
-  it("ETHが不足している場合はエラーが返される", async () => {});
-  it("最大供給数を超える場合はエラーが返される", async () => {});
-  it("1Txの最大数を超える場合はエラーが返される", async () => {});
+  it("1Txあたりの最大数でmintできる", async () => {
+    // phaseをPublicSaleに変更
+    await myContract.connect(owner).setPhasePublicSale();
+
+    // mint
+    await myContract.connect(addr1).publicMint(2, {
+      value: ethers.utils.parseEther("0.01"),
+    });
+
+    // addr1が正常にmintできていることを確認
+    const addr1Minted = await myContract.balanceOf(addr1.address);
+    expect(addr1Minted).to.equal(2);
+  });
+
+  it("複数回mintできる", async () => {
+    // phaseをPublicSaleに変更
+    await myContract.connect(owner).setPhasePublicSale();
+
+    // 2枚ずつ2回mintを実行
+    for (let i = 0; i < 2; i++) {
+      await myContract.connect(addr1).publicMint(2, {
+        value: ethers.utils.parseEther("0.01"),
+      });
+    }
+
+    // addr1が正常にmintできていることを確認
+    const addr1Minted = await myContract.balanceOf(addr1.address);
+    expect(addr1Minted).to.equal(4);
+  });
+
+  it("phaseがPausedの場合はエラーが返される", async () => {
+    // phaseをPausedに変更
+    await myContract.connect(owner).setPhasePaused();
+
+    // mint
+    await expect(
+      myContract.connect(addr1).publicMint(2, {
+        value: ethers.utils.parseEther("0.01"),
+      })
+    ).to.revertedWith("Not is public phase");
+  });
+
+  it("phaseがPresale1の場合はエラーが返される", async () => {
+    // phaseをPresale1に変更
+    await myContract.connect(owner).setPhasePresale1();
+
+    // mint
+    await expect(
+      myContract.connect(addr1).publicMint(2, {
+        value: ethers.utils.parseEther("0.01"),
+      })
+    ).to.revertedWith("Not is public phase");
+  });
+
+  it("phaseがPresale2の場合はエラーが返される", async () => {
+    // phaseをPresale2に変更
+    await myContract.connect(owner).setPhasePresale2();
+
+    // mint
+    await expect(
+      myContract.connect(addr1).publicMint(2, {
+        value: ethers.utils.parseEther("0.01"),
+      })
+    ).to.revertedWith("Not is public phase");
+  });
+
+  it("ETHが不足している場合はエラーが返される", async () => {
+    // phaseをPublicSaleに変更
+    await myContract.connect(owner).setPhasePublicSale();
+
+    // mint
+    await expect(
+      myContract.connect(addr1).publicMint(2, {
+        value: ethers.utils.parseEther("0.0099"),
+      })
+    ).to.revertedWith("Insufficient eth");
+  });
+
+  it("最大供給数を超える場合はエラーが返される", async () => {
+    // phaseをPublicSaleに変更
+    await myContract.connect(owner).setPhasePublicSale();
+
+    // ownerMintにて49枚をmint
+    await myContract.connect(owner).ownerMint(addr1.address, 49);
+
+    // mint
+    await expect(
+      myContract.connect(addr1).publicMint(2, {
+        value: ethers.utils.parseEther("0.01"),
+      })
+    ).to.revertedWith("claim is over the max supply");
+  });
+
+  it("1Txの最大数を超える場合はエラーが返される", async () => {
+    // phaseをPublicSaleに変更
+    await myContract.connect(owner).setPhasePublicSale();
+
+    // mint
+    await expect(
+      myContract.connect(addr1).publicMint(3, {
+        value: ethers.utils.parseEther("0.015"),
+      })
+    ).to.revertedWith("exceeded max mint amount per Tx");
+  });
 });

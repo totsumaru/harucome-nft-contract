@@ -213,7 +213,7 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         phase = SalePhase.Paused;
     }
 
-    function setPhasePresala1() external onlyRole(OPERATOR_ROLE) {
+    function setPhasePresale1() external onlyRole(OPERATOR_ROLE) {
         require(mintPrice[SalePhase.Presale1] > 0, "price is zero");
         phase = SalePhase.Presale1;
     }
