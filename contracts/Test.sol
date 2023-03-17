@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "hardhat/console.sol"; // TODO: 削除
 
 // TODO: DefaultOperatorFilterを入れる
+// TODO: tokenURIにrevealを入れる
 
 contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     enum SalePhase {
@@ -196,7 +197,7 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
     function setNotRevealedURI(
         string memory _uri
     ) external onlyRole(OPERATOR_ROLE) {
-        baseURI = _uri;
+        notRevealedURI = _uri;
     }
 
     function setBaseExtension(
