@@ -179,6 +179,19 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
             MerkleProof.verifyCalldata(_merkleProof, merkleRoot[_phase], leaf);
     }
 
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
+        if (!revealed) {
+            return notRevealedURI;
+        } else {
+            return
+                string(
+                    abi.encodePacked(ERC721Psi.tokenURI(tokenId), baseExtension)
+                );
+        }
+    }
+
     // ----------------------------------------------------------
     // Operator functions
     // ----------------------------------------------------------

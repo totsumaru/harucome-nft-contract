@@ -166,7 +166,7 @@ describe("setMintPrice", async () => {
 
 describe("setMerkleRoot", async () => {
   const root = createMerkleTree([
-    { adderss: addr1.address, maxMintAmount: 2 },
+    { address: addr1.address, maxMintAmount: 2 },
   ]).getHexRoot();
 
   it("MerkleRootを変更できる", async () => {
@@ -184,23 +184,48 @@ describe("setMerkleRoot", async () => {
 });
 
 describe("setWithdrawAddress", async () => {
-  it("引き出しのアドレスを変更できる", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+  it("引き出しのアドレスを変更できる", async () => {
+    await myContract.connect(owner).setWithdrawAddress(addr2.address);
+
+    const res = await myContract.withdrawAddress();
+    expect(res).to.equal(addr2.address);
+  });
+
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(myContract.connect(addr1).setWithdrawAddress(addr2.address)).to
+      .be.reverted;
+  });
 });
 
 describe("setDafaultRoyalty", async () => {
-  it("ロイヤリティを変更できる", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
-});
+  it("ロイヤリティを変更できる", async () => {
+    // addr2に5%のロイヤリティを設定
+    await myContract.connect(owner).setDefaultRoyalty(addr2.address, 500);
 
-describe("setDafaultRoyalty", async () => {
-  it("ロイヤリティを変更できる", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+    const salePrice = ethers.utils.parseEther("0.1");
+
+    const [receiver, royaltyAmout] = await myContract.royaltyInfo(1, salePrice);
+
+    expect(receiver).to.equal(addr2.address);
+    expect(royaltyAmout).to.equal(salePrice * (500 / 10000));
+  });
+
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(
+      myContract.connect(addr1).setDefaultRoyalty(addr2.address, 500)
+    ).to.be.reverted;
+  });
 });
 
 describe("withdraw", async () => {
   it("withdrawアドレスに期待した値が送金される", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(myContract.connect(addr1).withdraw()).to.be.reverted;
+  });
 });
 
 // ----------------------------------------------------------
