@@ -320,7 +320,7 @@ contract Test is ERC721RestrictApprove, AccessControl, Ownable, ERC2981 {
         _setCAL(calAddress);
     }
 
-    function setEnebleRestrict(bool _status) public onlyRole(OPERATOR_ROLE) {
+    function setEnableRestrict(bool _status) public onlyRole(OPERATOR_ROLE) {
         enableRestrict = _status;
     }
 

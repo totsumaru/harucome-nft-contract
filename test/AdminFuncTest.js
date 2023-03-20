@@ -6,8 +6,6 @@
 
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { keccak256 } = require("ethers/lib/utils");
-const { default: MerkleTree } = require("merkletreejs");
 const {
   deploy,
   phasePaused,
@@ -220,7 +218,38 @@ describe("setDafaultRoyalty", async () => {
 });
 
 describe("withdraw", async () => {
-  it("withdrawアドレスに期待した値が送金される", async () => {});
+  it("withdrawアドレスに期待した値が送金される", async () => {
+    const mintPrice = ethers.utils.parseEther("0.01");
+
+    // mint
+    {
+      // phaseをPublicSaleに変更
+      await myContract.connect(owner).setPhasePublicSale();
+
+      // mint
+      await myContract.connect(addr1).publicMint(2, {
+        value: mintPrice,
+      });
+    }
+
+    // withdraw
+    // addr2を引き出し先のアドレスとして設定します
+    {
+      // withdraw前のaddr2の残高
+      const beforeAddr2Price = await addr2.getBalance();
+
+      // withdrawAddressにaddr2を設定
+      await myContract.connect(owner).setWithdrawAddress(addr2.address);
+
+      // withdrawを実行
+      await myContract.connect(owner).withdraw();
+
+      // withdraw後のvalueが期待する値と一致することを確認
+      expect(await addr2.getBalance()).to.equal(
+        beforeAddr2Price.add(mintPrice)
+      );
+    }
+  });
 
   it("OPERATOR以外はエラーが返される", async () => {
     // addr1で実行
@@ -233,30 +262,103 @@ describe("withdraw", async () => {
 // ----------------------------------------------------------
 
 describe("addLocalContractAllowList", async () => {
-  it("ローカルの許可アドレスを追加できる", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+  it("ローカルの許可アドレスを追加できる", async () => {
+    // addr2のアドレスを追加します
+    await myContract.connect(owner).addLocalContractAllowList(addr2.address);
+
+    const addresses = await myContract
+      .connect(owner)
+      .getLocalContractAllowList();
+
+    expect(addresses).to.deep.equal([addr2.address]);
+  });
+
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(
+      myContract.connect(addr1).addLocalContractAllowList(addr2.address)
+    ).to.be.reverted;
+  });
 });
 
 describe("removeLocalContractAllowList", async () => {
   it("ローカルの許可アドレスを削除できる", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+  // 最初に追加します
+  // addr2のアドレスを追加します
+  {
+    await myContract.connect(owner).addLocalContractAllowList(addr2.address);
+
+    const addresses = await myContract
+      .connect(owner)
+      .getLocalContractAllowList();
+
+    // addr2のアドレスが追加されていることを確認
+    expect(addresses).to.deep.equal([addr2.address]);
+  }
+
+  // 削除します
+  {
+    await myContract.connect(owner).removeLocalContractAllowList(addr2.address);
+
+    const addresses = await myContract
+      .connect(owner)
+      .getLocalContractAllowList();
+
+    // addr2のアドレスが削除されていることを確認
+    expect(addresses).to.deep.equal([]);
+  }
+
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(
+      myContract.connect(addr1).removeLocalContractAllowList(addr2.address)
+    ).to.be.reverted;
+  });
 });
 
 describe("getLocalContractAllowList", async () => {
-  it("ローカルの許可アドレスが期待した値と一致する", async () => {});
+  // addLocalContractAllowListで検証しているため、ここでのテストは省略
 });
 
 describe("setCALLevel", async () => {
-  it("CALレベルを設定できる", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+  it("CALレベルを設定できる", async () => {
+    await myContract.connect(owner).setCALLevel(2);
+
+    const res = await myContract.connect(owner).CALLevel();
+    expect(res).to.equal(2);
+  });
+
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(myContract.connect(addr1).setCALLevel(2)).to.be.reverted;
+  });
 });
 
 describe("setCAL", async () => {
-  it("CALのアドレスを設定できる", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+  it("CALのアドレスを設定できる", async () => {
+    await myContract.connect(owner).setCAL(addr2.address);
+
+    const res = await myContract.connect(owner).CAL();
+    expect(res).to.equal(addr2.address);
+  });
+
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(myContract.connect(addr1).setCAL(addr2.address)).to.be
+      .reverted;
+  });
 });
 
 describe("setEnebleRestrict", async () => {
-  it("", async () => {});
-  it("OPERATOR以外はエラーが返される", async () => {});
+  it("状態を設定できる", async () => {
+    await myContract.connect(owner).setEnableRestrict(false);
+
+    const res = await myContract.connect(owner).enableRestrict();
+    expect(res).to.equal(false);
+  });
+  it("OPERATOR以外はエラーが返される", async () => {
+    // addr1で実行
+    await expect(myContract.connect(addr1).setEnableRestrict(false)).to.be
+      .reverted;
+  });
 });
